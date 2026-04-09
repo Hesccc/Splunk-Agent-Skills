@@ -4,6 +4,90 @@
 
 ---
 
+## 在 OpenClaw 中安装
+
+### 方法一：从 GitHub 安装（推荐）
+
+在 OpenClaw 中执行以下命令，直接从 GitHub 克隆并注册本 Skill：
+
+```bash
+skill install https://github.com/Hesccc/SplunkSkills.git
+```
+
+OpenClaw 将自动完成以下步骤：
+1. 克隆仓库到本地 Skill 目录
+2. 解析 `SKILL.md` 元数据
+3. 安装依赖项（`requests` 库）
+
+### 方法二：本地手动安装
+
+如果已将仓库克隆到本地，可手动注册到 OpenClaw：
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/Hesccc/SplunkSkills.git ~/.openclaw/workspace-main/skills/splunk
+
+# 2. 安装 Python 依赖
+pip install requests
+
+# 3. 在 OpenClaw 中刷新 Skill 列表
+skill reload
+```
+
+### 配置 Splunk 连接
+
+安装完成后，修改 Skill 目录下 `scripts/splunk_skill.py` 顶部的配置区：
+
+```python
+SPLUNK_HOST     = "192.168.1.100"   # Splunk 主机 IP 或域名
+SPLUNK_PORT     = 8089              # 管理端口（默认 8089）
+SPLUNK_USERNAME = "admin"           # 用户名
+SPLUNK_PASSWORD = "yourpassword"    # 密码
+SPLUNK_TOKEN    = ""                # Bearer Token（填写后优先使用，推荐）
+```
+
+### 验证安装
+
+在 OpenClaw 中查看 Skill 是否已正确加载：
+
+```bash
+skill list
+# 应看到 "Splunk" 出现在列表中
+```
+
+然后运行内置测试：
+
+```bash
+skill run splunk scripts/splunk_skill.py
+```
+
+或直接使用 Python 执行：
+
+```bash
+python3 ~/.openclaw/workspace-main/skills/splunk/scripts/splunk_skill.py
+```
+
+### 在 Agent 中调用
+
+```python
+import sys
+sys.path.insert(0, '/root/.openclaw/workspace-main/skills/splunk/scripts')
+from splunk_skill import SplunkSkill
+
+skill = SplunkSkill()
+
+# 执行 SPL 搜索
+result = skill.search_splunk(
+    query="index=_internal | head 10",
+    earliest_time="-1h",
+    max_count=10
+)
+print(result)
+```
+
+---
+
+
 ## 功能列表
 
 | 方法 | 描述 | 所需权限 |
