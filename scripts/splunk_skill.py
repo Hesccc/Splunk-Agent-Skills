@@ -282,6 +282,60 @@ class SplunkSkill:
             "results": rows,
         })
 
+    def _run_oneshot_search(
+        self,
+        spl: str,
+        earliest_time: str = "-60m",
+        latest_time: str   = "now",
+        max_count: int     = 100,
+    ) -> Dict[str, Any]:
+        """
+        Splunk 同步搜索（oneshot）流程：
+        请求发送后会阻塞直到搜索完成并返回结果，适合获取少量数据。
+        """
+        try:
+            stripped = spl.strip()
+            if stripped.startswith("|") or stripped.lower().startswith("search"):
+                search_str = stripped
+            else:
+                search_str = f"search {stripped}"
+                
+            resp = self._request(
+                "POST", "/services/search/jobs",
+                data={
+                    "search":        search_str,
+                    "earliest_time": earliest_time,
+                    "latest_time":   latest_time,
+                    "max_count":     str(max_count),
+                    "exec_mode":     "oneshot",
+                }
+            )
+        except Exception as e:
+            return _err(f"创建同步搜索作业失败: {e}")
+
+        if resp.status_code not in (200, 201):
+            return _err(f"同步搜索 HTTP {resp.status_code}: {resp.text[:300]}")
+
+        try:
+            result_json = resp.json()
+        except Exception:
+            # oneshot 返回为空时也可能解析失败
+            return _err(f"解析结果 JSON 失败: {resp.text[:300]}")
+
+        if isinstance(result_json, list):
+            rows = result_json
+        elif isinstance(result_json, dict):
+            rows = result_json.get("results", [])
+        else:
+            rows = []
+
+        logger.info(f"[SplunkSkill] 同步搜索完成，返回 {len(rows)} 条结果")
+        return _ok({
+            "sid":     "oneshot",
+            "count":   len(rows),
+            "results": rows,
+        })
+
     # ══════════════════════════════════════════════════════════════════════════
     # 工  具  方  法
     # ══════════════════════════════════════════════════════════════════════════
@@ -594,16 +648,17 @@ class SplunkSkill:
         earliest_time: str = "-60m",
         latest_time: str   = "now",
         max_count: int     = 100,
+        exec_mode: str     = "async",
     ) -> Dict[str, Any]:
         """
-        执行用户提供的 SPL 搜索查询，采用异步作业模式。
-        自动等待搜索完成并返回结果。
+        执行用户提供的 SPL 搜索查询，支持异步和一键同步搜索模式。
 
         参数:
             query        (str): SPL 查询语句，例如 "index=main | head 20"
             earliest_time(str): 搜索起始时间，默认 "-60m"（支持相对时间和绝对时间）
             latest_time  (str): 搜索结束时间，默认 "now"
             max_count    (int): 最大返回结果数，默认 100
+            exec_mode    (str): 执行模式，支持 "async" (大批量) 或 "oneshot" (少量数据等待返回)，默认 "async"
 
         返回示例:
             {
@@ -620,13 +675,21 @@ class SplunkSkill:
         if max_count < 1:
             return _err("max_count 必须大于 0")
 
-        logger.info(f"[SplunkSkill] 执行搜索: {query[:100]}...")
-        return self._run_search_job(
-            spl=query,
-            earliest_time=earliest_time,
-            latest_time=latest_time,
-            max_count=max_count,
-        )
+        logger.info(f"[SplunkSkill] 执行搜索(模式={exec_mode}): {query[:100]}...")
+        if exec_mode == "oneshot":
+            return self._run_oneshot_search(
+                spl=query,
+                earliest_time=earliest_time,
+                latest_time=latest_time,
+                max_count=max_count,
+            )
+        else:
+            return self._run_search_job(
+                spl=query,
+                earliest_time=earliest_time,
+                latest_time=latest_time,
+                max_count=max_count,
+            )
 
     # ──────────────────────────────────────────────────────────────────────────
 
@@ -898,15 +961,23 @@ if __name__ == "__main__":
     print(f"\n⏳ 正在执行 tstats 查询，最长等待 {REQUEST_TIMEOUT} 秒...")
     _print_result("indexes_and_sourcetypes — 索引 sourcetype 映射", skill.indexes_and_sourcetypes())
 
-    # ── 测试 7: SPL 搜索 ─────────────────────────────────────────────────────
-    print(f"\n⏳ 正在执行 SPL 搜索，最长等待 {REQUEST_TIMEOUT} 秒...")
+    print(f"\n⏳ 正在执行 SPL 搜索 (Async)，最长等待 {SEARCH_TIMEOUT} 秒...")
     _print_result(
-        "search_splunk — SPL 搜索 (index=_internal | head 5)",
+        "search_splunk (Async) — SPL 搜索 (index=_internal | head 5)",
         skill.search_splunk(
             query="index=_internal | head 5",
             earliest_time="-1h",
             latest_time="now",
             max_count=5,
+        ),
+    )
+
+    print(f"\n⏳ 正在执行 SPL 搜索 (Oneshot)...")
+    _print_result(
+        "search_splunk (Oneshot) — SPL 搜索 (index=_internal | head 1)",
+        skill.search_splunk(
+            query="index=_internal | head 1",
+            exec_mode="oneshot",
         ),
     )
 

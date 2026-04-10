@@ -76,13 +76,20 @@ from splunk_skill import SplunkSkill
 
 skill = SplunkSkill()
 
-# 执行 SPL 搜索
+# 执行 SPL 搜索 (默认异步模式)
 result = skill.search_splunk(
     query="index=_internal | head 10",
     earliest_time="-1h",
     max_count=10
 )
 print(result)
+
+# 执行同步验证搜索 (Oneshot 模式)
+result_oneshot = skill.search_splunk(
+    query='index=_internal | head 1',
+    exec_mode="oneshot"
+)
+print(result_oneshot)
 ```
 
 ---
@@ -156,7 +163,7 @@ skill = SplunkSkill()
 # 连接检测
 print(skill.health_check())
 
-# 执行 SPL 搜索
+# 执行 SPL 搜索 (异步)
 result = skill.search_splunk(
     query="index=_internal | head 20",
     earliest_time="-1h",
@@ -164,6 +171,13 @@ result = skill.search_splunk(
     max_count=20
 )
 print(result)
+
+# 执行验证搜索 (同步)
+result_oneshot = skill.search_splunk(
+    query="index=_internal | head 1",
+    exec_mode="oneshot"
+)
+print(result_oneshot)
 
 # 查看索引与 sourcetype 映射
 print(skill.indexes_and_sourcetypes())
@@ -241,6 +255,7 @@ python -m py_compile splunk_skill.py; if ($?) { "SYNTAX OK" }
 | `earliest_time` | str | `"-24h"` | 起始时间，支持相对（`-1h`、`-7d`）和绝对时间 |
 | `latest_time` | str | `"now"` | 结束时间 |
 | `max_count` | int | `100` | 最大返回结果数 |
+| `exec_mode` | str | `"async"` | 执行模式，支持 `"async"` (大批量分析，默认) 或 `"oneshot"` (同步阻塞，少量快速) |
 
 ---
 

@@ -211,9 +211,9 @@ SPLUNK_TOKEN    = ""   # 留空则自动使用 Basic Auth
 
 ---
 
-### `search_splunk(query, earliest_time, latest_time, max_count)`
+### `search_splunk(query, earliest_time, latest_time, max_count, exec_mode)`
 
-**描述**：执行用户提供的 SPL 查询，采用异步作业模式，自动轮询等待结果。
+**描述**：执行用户提供的 SPL 查询，支持异步轮询模式(`"async"`)和一键同步阻塞模式(`"oneshot"`)。
 
 **调用端点**：`POST /services/search/jobs` → `GET /services/search/jobs/{sid}/results`
 
@@ -225,6 +225,7 @@ SPLUNK_TOKEN    = ""   # 留空则自动使用 Basic Auth
 | `earliest_time` | str | `"-60m"` | 起始时间（相对：`-1h`、`-7d`；绝对：`2026-01-01T00:00:00`）|
 | `latest_time` | str | `"now"` | 结束时间 |
 | `max_count` | int | `100` | 最大返回结果条数（上限受 `SEARCH_TIMEOUT` 约束）|
+| `exec_mode` | str | `"async"` | 执行模式，支持 `"async"` (作业轮询，大数据) 和 `"oneshot"` (等待结果，少量数据) |
 
 **返回结构**：
 ```json

@@ -61,7 +61,7 @@ skill = SplunkSkill()
 result = skill.health_check()
 print(result)
 
-# 2. 执行 SPL 搜索
+# 2. 执行 SPL 搜索 (Async模式，默认)
 result = skill.search_splunk(
     query="index=_internal | head 10",
     earliest_time="-15m",
@@ -69,6 +69,13 @@ result = skill.search_splunk(
     max_count=10
 )
 print(result)
+
+# 2.1 执行同步短查询 (Oneshot模式)
+result2 = skill.search_splunk(
+    query="index=_internal | head 1",
+    exec_mode="oneshot"
+)
+print(result2)
 
 # 3. 查询索引列表
 result = skill.list_indexes()
@@ -104,6 +111,7 @@ skill.delete_kvstore_collection("my_collection")
 | `earliest_time` | str | `"-24h"` | 搜索起始时间，支持相对时间（如 `-1h`、`-7d`）|
 | `latest_time` | str | `"now"` | 搜索结束时间 |
 | `max_count` | int | `100` | 最大返回结果数 |
+| `exec_mode` | str | `"async"` | 执行模式，支持 `"async"` (大批量异步) 和 `"oneshot"` (同步阻塞，适合少量) |
 
 ## 运行内置测试
 
