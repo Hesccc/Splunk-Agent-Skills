@@ -110,13 +110,21 @@ print(result)
 
 ```
 Skills/Splunk/
-├── README.md              # 本文件（功能介绍与使用说明）
-├── SKILL.md               # Skill 元数据（供 Agent 框架解析）
+├── README.md                        # 本文件（功能介绍与使用说明）
+├── SKILL.md                         # Skill 元数据（供 Agent 框架解析）
+├── reference.md                     # 详细 API 参考与配置说明
+├── examples/
+│   ├── good-example.md              # 推荐的正确使用示例
+│   └── bad-example.md               # 应避免的反模式示例
+├── references/
+│   ├── naming-convention.md         # 命名规范（SPL、KV Store、变量）
+│   └── security-rules.md            # 安全规则与禁用命令清单
 └── scripts/
-    └── splunk_skill.py    # 主技能类与内置测试
+    └── splunk_skill.py              # 主技能类与内置测试
 ```
 
 ---
+
 
 ## 快速开始
 
